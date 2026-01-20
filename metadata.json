@@ -1,0 +1,7 @@
+{
+  "name": "Nazzari Odontologia",
+  "description": "Sistema completo para gestão de clínica odontológica: agenda, financeiro e prontuário digital com armazenamento local.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
