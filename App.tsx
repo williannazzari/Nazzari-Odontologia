@@ -12,7 +12,8 @@ import {
   LogOut,
   ArrowLeft,
   Stethoscope,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Download
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import PatientList from './components/PatientList';
@@ -27,6 +28,8 @@ type View = 'dashboard' | 'patients' | 'calendar' | 'finance' | 'gallery' | 'ate
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   // Sincroniza o estado atual com a hash da URL para permitir navegação do navegador
   useEffect(() => {
@@ -44,8 +47,33 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange(); // Verificação inicial ao carregar o app
 
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    // PWA Install Prompt Listener
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+          setShowInstallBtn(false);
+        }
+        setDeferredPrompt(null);
+      });
+    }
+  };
 
   const NavItem = ({ view, icon: Icon, label }: { view: View, icon: any, label: string }) => (
     <button
@@ -65,8 +93,6 @@ const App: React.FC = () => {
   );
 
   // Utilizamos o padrão "Keep-Alive" para as views principais.
-  // Em vez de renderização condicional que desmonta o componente, renderizamos todos
-  // e apenas ocultamos os inativos com CSS. Isso preserva o estado dos formulários e buscas.
   const views = useMemo(() => [
     { id: 'dashboard', component: <Dashboard /> },
     { id: 'patients', component: <PatientList /> },
@@ -116,7 +142,16 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-8 border-t border-gray-800">
+        <div className="p-8 border-t border-gray-800 space-y-2">
+          {showInstallBtn && (
+            <button 
+              onClick={handleInstallClick}
+              className="flex items-center space-x-3 w-full px-4 py-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-500 transition-all font-bold animate-pulse"
+            >
+              <Download size={20} />
+              <span>Instalar App</span>
+            </button>
+          )}
           <button className="flex items-center space-x-3 w-full px-4 py-3 text-gray-500 hover:text-red-400 transition-all font-bold group">
             <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
             <span>Sair do Sistema</span>

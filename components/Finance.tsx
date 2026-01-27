@@ -87,8 +87,12 @@ const Finance: React.FC = () => {
     }, { income: 0, expense: 0 });
   }, [filteredTransactions]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Função centralizada de salvamento que aceita um status opcional
+  const saveTransaction = async (overrideStatus?: 'paid' | 'pending' | 'overdue') => {
+    if (!formData.amount || !formData.description) {
+      alert("Por favor, preencha o valor e a descrição.");
+      return;
+    }
     
     let patientName = '';
     if (formData.patientId) {
@@ -107,7 +111,7 @@ const Finance: React.FC = () => {
       patientName: patientName,
       paymentMethod: formData.paymentMethod as PaymentMethod,
       installments: formData.installments || 1,
-      status: formData.status as 'paid' | 'pending' | 'overdue' || 'paid'
+      status: overrideStatus || (formData.status as 'paid' | 'pending' | 'overdue') || 'paid'
     };
     
     await db.save('transactions', t);
@@ -118,6 +122,11 @@ const Finance: React.FC = () => {
       date: new Date().toISOString().split('T')[0], paymentMethod: 'pix', 
       installments: 1, status: 'paid'
     });
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveTransaction();
   };
 
   const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -223,7 +232,7 @@ const Finance: React.FC = () => {
             <h3 className="text-xl font-black text-gray-900">Novo Lançamento</h3>
             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900"><X size={24} /></button>
           </div>
-          <form onSubmit={handleSave} className="p-8 space-y-6">
+          <form onSubmit={handleFormSubmit} className="p-8 space-y-6">
             <div className="flex bg-gray-100 p-1.5 rounded-2xl">
               <button type="button" onClick={() => setFormData({...formData, type: 'income'})} className={`flex-1 py-3 rounded-xl font-bold transition-all ${formData.type === 'income' ? 'bg-white text-green-600 shadow-md' : 'text-gray-500'}`}>Receita</button>
               <button type="button" onClick={() => setFormData({...formData, type: 'expense'})} className={`flex-1 py-3 rounded-xl font-bold transition-all ${formData.type === 'expense' ? 'bg-white text-red-600 shadow-md' : 'text-gray-500'}`}>Despesa</button>
@@ -239,6 +248,15 @@ const Finance: React.FC = () => {
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Valor</label>
                 <input type="number" step="0.01" required value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl font-black text-xl" />
+                
+                {/* BOTÃO DE CONFIRMAÇÃO RÁPIDA DE PAGAMENTO */}
+                <button 
+                   type="button" 
+                   onClick={() => saveTransaction('paid')}
+                   className="w-full mt-2 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-xl text-[10px] font-black uppercase tracking-wide flex items-center justify-center gap-1 transition-colors"
+                >
+                   <CheckCircle size={14} /> Confirmar Pagamento
+                </button>
               </div>
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Data</label>
